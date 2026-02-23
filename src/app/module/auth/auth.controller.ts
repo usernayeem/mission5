@@ -1,11 +1,14 @@
 import { Request, Response } from "express";
-import { catchAsync } from "../../shared/catchAsync";
-import { AuthService } from "./auth.service";
-import { sendResponse } from "../../shared/sendResponse";
 import status from "http-status";
-import { tokenUtils } from "../../utils/token";
 import ms, { StringValue } from "ms";
 import { envVars } from "../../../config/env";
+import AppError from "../../errorHelpers/AppError";
+import { auth } from "../../lib/auth";
+import { catchAsync } from "../../shared/catchAsync";
+import { sendResponse } from "../../shared/sendResponse";
+import { CookieUtils } from "../../utils/cookie";
+import { tokenUtils } from "../../utils/token";
+import { AuthService } from "./auth.service";
 
 const registerPatient = catchAsync(async (req: Request, res: Response) => {
   const maxAge = ms(envVars.ACCESS_TOKEN_EXPIRES_IN as StringValue);
@@ -57,7 +60,20 @@ const loginUser = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getMe = catchAsync(async (req: Request, res: Response) => {
+  const user = req.user;
+  console.log({ user });
+  const result = await AuthService.getMe(user);
+  sendResponse(res, {
+    httpStatusCode: status.OK,
+    success: true,
+    message: "User profile fetched successfully",
+    data: result,
+  });
+});
+
 export const AuthController = {
   registerPatient,
   loginUser,
+  getMe
 };

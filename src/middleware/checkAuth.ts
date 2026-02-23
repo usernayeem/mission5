@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextFunction, Request, Response } from "express";
 import status from "http-status";
 import { Role, UserStatus } from "../generated/prisma/enums";
@@ -54,8 +55,8 @@ export const checkAuth =
           }
 
           if (
-            user.status === UserStatus.Blocked ||
-            user.status === UserStatus.Deleted
+            user.status === UserStatus.BLOCKED ||
+            user.status === UserStatus.DELETED
           ) {
             throw new AppError(
               status.UNAUTHORIZED,

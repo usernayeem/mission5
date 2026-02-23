@@ -18,13 +18,13 @@ export const auth = betterAuth({
       role: {
         type: "string",
         required: true,
-        defaultValue: Role.Patient,
+        defaultValue: Role.PATIENT,
       },
 
       status: {
         type: "string",
         required: true,
-        defaultValue: UserStatus.Active,
+        defaultValue: UserStatus.ACTIVE,
       },
 
       needPasswordChange: {
@@ -44,15 +44,6 @@ export const auth = betterAuth({
         required: false,
         defaultValue: null,
       },
-    },
-  },
-
-  session: {
-    expiresIn: 60 * 60 * 60 * 24, // 1 day in seconds
-    updateAge: 60 * 60 * 60 * 24, // 1 day in seconds
-    cookieCache: {
-      enabled: true,
-      maxAge: 60 * 60 * 60 * 24, // 1 day in seconds
     },
   },
 });

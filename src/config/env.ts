@@ -15,6 +15,9 @@ interface EnvConfig {
 }
 
 const loadEnvVariables = (): EnvConfig => {
+  // Load .env file first so process.env is populated before validation
+  dotenv.config();
+
   // List of required environment variables
   const requireEnvVariable = [
     "NODE_ENV",

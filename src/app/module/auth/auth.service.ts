@@ -1,15 +1,18 @@
+import status from "http-status";
+import { JwtPayload } from "jsonwebtoken";
 import { UserStatus } from "../../../generated/prisma/enums";
+import { envVars } from "../../../config/env";
 import AppError from "../../errorHelpers/AppError";
+import { IRequestUser } from "../../interfaces/requestUser.interface";
 import { auth } from "../../lib/auth";
 import { prisma } from "../../lib/prisma";
+import { jwtUtils } from "../../utils/jwt";
 import { tokenUtils } from "../../utils/token";
-import { StatusCodes } from "http-status-codes";
-
-interface IRegisterPatientPayload {
-  name: string;
-  email: string;
-  password: string;
-}
+import {
+  IChangePasswordPayload,
+  ILoginUserPayload,
+  IRegisterPatientPayload,
+} from "./auth.interface";
 
 const registerPatient = async (payload: IRegisterPatientPayload) => {
   const { name, email, password } = payload;
@@ -19,13 +22,18 @@ const registerPatient = async (payload: IRegisterPatientPayload) => {
       name,
       email,
       password,
+      //default values
+      // needsPasswordChange: false,
+      // role: Role.PATIENT
     },
   });
 
   if (!data.user) {
-    throw new AppError(StatusCodes.BAD_REQUEST, "Failed to register patient");
+    // throw new Error("Failed to register patient");
+    throw new AppError(status.BAD_REQUEST, "Failed to register patient");
   }
 
+  //TODO : Create Patient Profile In Transaction After Sign Up Of Patient In USer Model
   try {
     const patient = await prisma.$transaction(async (tx) => {
       const patientTx = await tx.patient.create({
@@ -76,11 +84,6 @@ const registerPatient = async (payload: IRegisterPatientPayload) => {
   }
 };
 
-interface ILoginUserPayload {
-  email: string;
-  password: string;
-}
-
 const loginUser = async (payload: ILoginUserPayload) => {
   const { email, password } = payload;
 
@@ -91,12 +94,12 @@ const loginUser = async (payload: ILoginUserPayload) => {
     },
   });
 
-  if (data.user.status === UserStatus.Blocked) {
-    throw new AppError(StatusCodes.FORBIDDEN, "User is blocked");
+  if (data.user.status === UserStatus.BLOCKED) {
+    throw new AppError(status.FORBIDDEN, "User is blocked");
   }
 
-  if (data.user.isDeleted || data.user.status === UserStatus.Deleted) {
-    throw new AppError(StatusCodes.NOT_FOUND, "User is deleted");
+  if (data.user.isDeleted || data.user.status === UserStatus.DELETED) {
+    throw new AppError(status.NOT_FOUND, "User is deleted");
   }
 
   const accessToken = tokenUtils.getAccessToken({
@@ -126,7 +129,42 @@ const loginUser = async (payload: ILoginUserPayload) => {
   };
 };
 
+const getMe = async (user: IRequestUser) => {
+  const isUserExists = await prisma.user.findUnique({
+    where: {
+      id: user.userId,
+    },
+    include: {
+      patient: {
+        include: {
+          appointments: true,
+          reviews: true,
+          prescriptions: true,
+          medicalReports: true,
+          patientHealthData: true,
+        },
+      },
+      doctor: {
+        include: {
+          specialties: true,
+          appointments: true,
+          reviews: true,
+          prescriptions: true,
+        },
+      },
+      admin: true,
+    },
+  });
+
+  if (!isUserExists) {
+    throw new AppError(status.NOT_FOUND, "User not found");
+  }
+
+  return isUserExists;
+};
+
 export const AuthService = {
   registerPatient,
   loginUser,
+  getMe,
 };
